@@ -45,14 +45,20 @@ this data-sample.
 
 The following data are already reweighted around T_c, like described in the literature below.
 
-![reweighted energy of ising simulation](./results/plots/measuredAndRewEnergy.png)
-![reweighted magnetization of ising simulation](./results/plots/measuredAndRewMagnet.png)
-
 To estimate the heat capacity and magnetic susceptibility I followed the literature and estimated variances in the data
 and furthermore reweighted those.
 
-![reweighted heat capacity of ising simulation](./results/plots/measuredAndRewHeatCap.png)
-![reweighted susceptibility of ising simulation](./results/plots/measuredAndRewSuscept.png)
+![reweighted energy of ising simulation](./results/plots/measuredAndRewObservables.png)
+
+### binder-cumulant analysis
+
+One approach to estimate the critical temperature T_c is by using binder-cumulants U_L like described in the literature
+below.
+
+The exact value from the literature is T_c=2/log(1+sqrt(2))=2.2691... This is within our confidence interval.
+
+![estimate critical temperature with binder cumulants](./results/plots/binderCumulant_Tcrit.png)
+
 
 ### Calculate critical exponents
 
@@ -66,10 +72,7 @@ Following the literature further one can estimate the critical exponents of the 
 against the number of spins in a double logarithmic plot.
 
 ![fit of magnetization](./results/plots/measuredAndRewMagnet_fit.png)
-![fit of alpha](./results/plots/heatCapMax_alpha.png)
-![fit of beta](./results/plots/magnet_beta.png)
-![fit of gamma](./results/plots/SusceptMax_gamma.png)
-![fit of nu](./results/plots/Tcrit_err_N_nu.png)
+![fit of critical exponents](./results/plots/fitExponents.png)
 
 Let's compare the critical exponents with the literature:
 
@@ -83,15 +86,6 @@ correlation length  |nu                 |1.095+-0.138   |1
 Overall the values are quite well. However, we only used data up to N=128^2 spins.
 
 One could increase the achieved accuracy by increasing N.
-
-### binder-cumulant analysis
-
-One approach to estimate the critical temperature T_c is by using binder-cumulants U_L like described in the literature
-below.
-
-The exact value from the literature is T_c=2/log(1+sqrt(2))=2.2691... This is within our confidence interval.
-
-![estimate critical temperature with binder cumulants](./results/plots/binderCumulant_Tcrit.png)
 
 ## Literature
 
