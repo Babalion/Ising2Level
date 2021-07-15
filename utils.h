@@ -3,6 +3,7 @@
 //
 #pragma once
 
+#include <CvPlot/cvplot.h>
 #include <filesystem>
 #include <string>
 #include <sys/types.h>

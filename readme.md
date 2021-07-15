@@ -1,11 +1,16 @@
 # Ising2Level Simulation
+With the following programs one can analyze the 2D-Ising model with monte-carlo algorithms.
+In addition, calculate critical exponents with reweighting in MATLAB.
+Furthermore, analyze the autocorrelations and compare metropolis with the heatbath algorithm.
+With little programming effort also every other calculation with the 2D-Ising model can be achieved.
 
 This project includes the following runnable programs, in the following called `{program-name}`
+*Every program runs with 100% CPU load on every core.*
 
 1. **ising-with-plots**: generates plots directly after simulation with CV-Plot
 2. **ising-headless**: only status updates from console, saves all data to file
-3. **ising-autocorr**: calculates autocorrelation of energies and plots it with CV-Plot
-4. **ising-live**: you can view the whole configuration of the spin-field in live while simulation
+3. **ising-live**: you can view the whole configuration of the spin-field in live while simulation.
+   Furthermore, calculates autocorrelation of energies and plots it with CV-Plot.
 
 Furthermore, this repository includes matlab-scripts for post-calculations of the generated values.
 
@@ -86,6 +91,14 @@ correlation length  |nu                 |1.095+-0.138   |1
 Overall the values are quite well. However, we only used data up to N=128^2 spins.
 
 One could increase the achieved accuracy by increasing N.
+
+## Ising-live
+One can observe the monte-carlo process live via a fast GUI built with OpenCV. A small impression:
+![ising live screenshot](./results/plots/isingLiveGUI.png)
+
+Furthermore, a plot of autocorrelations is shown after simulation. Here we compare the metropolis-algorithm with the heatbath-algorithm.
+![ising autocorrelations](./results/plots/autocorr.png)
+
 
 ## Literature
 
