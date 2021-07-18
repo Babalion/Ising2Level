@@ -39,14 +39,14 @@ public:
                 if (i % shuffleAgainAfter == 0) {
                     std::cout<<"Shuffle!!<<\n";
                     sl.initRandom();
-                    metropolisSweep(sl, temps[i], thermalizeSweeps);
+                    wolffSweep(sl, temps[i], thermalizeSweeps);
                 }
                 if(i%(temps.size()/20)==0){
                     auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                     std::cout.precision(3);
                     std::cout << std::ctime(&time) << "N="<<sights<<"\tprogress:" << 100.0f*i/temps.size() <<"%"<< std::endl;
                 }
-                metropolisSweep(sl, temps[i], sweepsPerIteration);
+                wolffSweep(sl, temps[i], sweepsPerIteration);
                 energies.push_back(sl.calcEnergy());
                 magnetization.push_back(sl.calcMagnetization());
                 susceptibility.push_back(sl.calcSusceptibility());

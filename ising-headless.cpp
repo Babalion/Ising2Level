@@ -18,24 +18,24 @@
 void simulateAndPlot() {
     const float TCritical = 2.0f / std::log(1.0f + std::sqrt(2.0f));
     const float minTemp = 2;
-    const float maxTemp = 3;
+    const float maxTemp = 2.6;
     const int numOfTemps = 8;
     const int numIterations = 1000;
     const unsigned int shuffleAgainAfter = UINT32_MAX;
 
     std::vector<Simulation> Sims = {
-            Simulation(4, 8, TCritical - 1.0f, TCritical + 1.0f, numIterations, shuffleAgainAfter),
-            Simulation(8, 8, TCritical - 0.8f, TCritical + 0.8f, numIterations, shuffleAgainAfter),
-            Simulation(16, 8, TCritical - 0.5f, TCritical + 0.5f, numIterations, shuffleAgainAfter),
-            Simulation(32, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter),
-            Simulation(64, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter)};
+            Simulation(16, 8, minTemp, maxTemp, numIterations, shuffleAgainAfter),
+            Simulation(32, 8, TCritical - 0.8f, TCritical + 0.8f, numIterations, shuffleAgainAfter),
+            Simulation(64, 8, TCritical - 0.5f, TCritical + 0.5f, numIterations, shuffleAgainAfter),
+            Simulation(128, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter),
+            Simulation(256, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter)};
 
     for (auto &S:Sims) {
-        S.sweepsPerIteration = 100;
-        S.thermalizeSweeps = 1E3;
+        S.sweepsPerIteration = 5;
+        S.thermalizeSweeps = 50;
     }
 
-    std::ofstream file("IsingResultsNew5.tsv");
+    std::ofstream file("IsingResultsWolff.tsv");
     file << "numOfTemps:\t" << numOfTemps << std::endl;
     file << "numOfIterations:\t" << numIterations << std::endl << std::endl;
     file << "N\ttemp\tmagnetization\tenergy\tsusceptibility\theatCapacity\n";

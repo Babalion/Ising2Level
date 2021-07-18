@@ -3,6 +3,8 @@
 //
 #include <algorithm>
 #include "assert_macro.h"
+#include <chrono>
+
 #include "../../ising.h"
 
 int test_SpinLattice2level() {
@@ -46,16 +48,18 @@ int test_Simulation_seq() {
     int err_code = 0;
 
     // check initialization...
-    const int numOfTemps = 8;
-    const int numOfIterations = 5;
-    Simulation Sim(10, numOfTemps, 0, 8, numOfIterations, 100);
-    assertEqual(Sim.getSights() == 10);
+    const int numOfTemps = 16;
+    const int numOfIterations = 1000;
+    Simulation Sim(128, numOfTemps, 1, 8, numOfIterations, UINT32_MAX);
+    Sim.sweepsPerIteration = 2;
+    Sim.thermalizeSweeps = 50;
+    assertEqual(Sim.getSights() == 128);
     assertEqual(Sim.getNumOfTemps() == numOfTemps);
     assertEqual(Sim.getTemps().size() == numOfTemps * numOfIterations);
     Sim.simulate_seq();
     assertEqual(Sim.getTemps().back() == 8);
     std::cout << "Sim.getTemps().back()=" << Sim.getTemps().back() << std::endl;
-    assertEqual(Sim.getTemps()[0] == 0);
+    assertEqual(Sim.getTemps()[0] == 1);
     assertEqual(Sim.getTemps().size() == numOfIterations * numOfTemps);
     assertEqual(std::is_sorted(Sim.getTemps().begin(), Sim.getTemps().end()) == true);
 
@@ -82,8 +86,8 @@ int test_Simulation_par() {
     const float startTemp = 2;
     const int numOfTemps = 16;
     const int numOfIterations = 50;
-    Simulation Sim(8, numOfTemps, startTemp, 8, numOfIterations, 10);
-    assertEqual(Sim.getSights() == 8);
+    Simulation Sim(16, numOfTemps, startTemp, 8, numOfIterations, 10);
+    assertEqual(Sim.getSights() == 16);
     assertEqual(Sim.getNumOfTemps() == numOfTemps);
     assertEqual(Sim.getTemps().size() == numOfTemps * numOfIterations);
 
@@ -111,8 +115,13 @@ int test_Simulation_par() {
 
 int main() {
     int err_code = 0;
-    assertEqual (test_SpinLattice2level() == 0);
+    auto begin = std::chrono::steady_clock::now();
+    //assertEqual (test_SpinLattice2level() == 0);
     assertEqual (test_Simulation_seq() == 0);
-    assertEqual (test_Simulation_par() == 0);
+    //assertEqual (test_Simulation_par() == 0);
+
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Time needed = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"
+              << std::endl;
     return err_code;
 }

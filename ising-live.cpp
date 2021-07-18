@@ -6,10 +6,11 @@
 
 
 void runIsingLive() {
-    SpinLattice2level sl(75);
+    SpinLattice2level sl(100);
     // create arrays to save measurements to
-    std::vector<std::vector<float>> lowTemp;
-    std::vector<std::vector<float>> lowTempHB;
+    std::vector<std::vector<float>> energyMetro;
+    std::vector<std::vector<float>> energyHB;
+    std::vector<std::vector<float>> energyWolff;
 
     // Register the GUI
     // You can specify the dimensions of the window
@@ -17,21 +18,24 @@ void runIsingLive() {
     gui.waitTime = 1;
     gui.notify(sl);
 
-    const int numEnsembles = 10;
+    const int numEnsembles = 1;
     const int numSteps = 1000;
+    const float temp = 2.0f / std::log(1.0f + std::sqrt(2.0f));
+
     // reserve memory
-    lowTemp.reserve(numEnsembles);
-    lowTempHB.reserve(numEnsembles);
+    energyMetro.reserve(numEnsembles);
+    energyHB.reserve(numEnsembles);
+    energyWolff.reserve(numEnsembles);
 
 
     /// Start simulation
     for (int i = 0; i < numEnsembles; i++) {
-        lowTemp.push_back(std::vector<float>{(float) sl.calcEnergy()});
+        energyMetro.push_back(std::vector<float>{(float) sl.calcEnergy()});
         for (int j = 0; j < numSteps; ++j) {
-            metropolisSweep(sl, 2, 1);
-            lowTemp[i].push_back(sl.calcEnergy());
+            metropolisSweep(sl, temp, 10);
             if (j == 0)
-                lowTemp[i].reserve(numSteps);
+                energyMetro[i].reserve(numSteps);
+            energyMetro[i].push_back(sl.calcEnergy());
             if (j % 20 == 0)
                 gui.notify(sl);
         }
@@ -40,11 +44,27 @@ void runIsingLive() {
 
     sl.initRandom();
     for (int i = 0; i < numEnsembles; i++) {
-        lowTempHB.push_back(std::vector<float>{(float) sl.calcEnergy()});
+        energyHB.push_back(std::vector<float>{(float) sl.calcEnergy()});
         for (int j = 0; j < numSteps; ++j) {
-            heatBathSweep(sl, 2);
-            lowTempHB[i].push_back(sl.calcEnergy());
-            if (i % 20 == 0)
+            heatBathSweep(sl, temp, 10);
+            if (j == 0)
+                energyHB[i].reserve(numSteps);
+            energyHB[i].push_back(sl.calcEnergy());
+            if (j % 20 == 0)
+                gui.notify(sl);
+        }
+        sl.initRandom();
+    }
+
+    sl.initRandom();
+    for (int i = 0; i < numEnsembles; i++) {
+        energyWolff.push_back(std::vector<float>{(float) sl.calcEnergy()});
+        for (int j = 0; j < numSteps; ++j) {
+            wolffSweep(sl, temp, 10);
+            if (j == 0)
+                energyWolff[i].reserve(numSteps);
+            energyWolff[i].push_back(sl.calcEnergy());
+            if (j % 20 == 0)
                 gui.notify(sl);
         }
         sl.initRandom();
@@ -58,17 +78,45 @@ void runIsingLive() {
     /// Plot and calculate measured energy
     /// ---------------------------------------------------------------------------------------------------------------
 
-    auto axes = CvPlot::makePlotAxes();
-    for(size_t i=0;i<lowTemp.size();i++) {
-        axes.create<CvPlot::Series>(lowTemp[i], "-g").setMarkerType(CvPlot::MarkerType::Circle).setMarkerSize(
-                10).setLineType(CvPlot::LineType::None);
-        axes.create<CvPlot::Series>(lowTempHB[i], "-r").setMarkerType(CvPlot::MarkerType::Circle).setMarkerSize(
-                10).setLineType(CvPlot::LineType::None);
-    }
-    std::cout << "mean(lowT)= " << mean(lowTemp) << std::endl;
-    std::cout << "mean(lowT_HB)= " << mean(lowTempHB) << std::endl;
+    auto axesEnergy = CvPlot::makePlotAxes();
+    for (size_t i = 0; i < energyMetro.size(); i++) {
+        if (i == 0) {
+            axesEnergy.create<CvPlot::Series>(energyMetro[i], "-g").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None).setName("Metropolis (T=T_c)");
 
-    CvPlot::show("plotPhysics", axes);
+            axesEnergy.create<CvPlot::Series>(energyHB[i], "-r").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None).setName("HeatBath (T=T_c)");
+
+            axesEnergy.create<CvPlot::Series>(energyWolff[i], "-b").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None).setName("Wolff (T=T_c)");
+        } else {
+            axesEnergy.create<CvPlot::Series>(energyMetro[i], "-g").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None);
+
+            axesEnergy.create<CvPlot::Series>(energyHB[i], "-r").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None);
+
+            axesEnergy.create<CvPlot::Series>(energyWolff[i], "-b").setMarkerType(
+                    CvPlot::MarkerType::Circle).setMarkerSize(
+                    10).setLineType(CvPlot::LineType::None);
+        }
+
+    }
+    axesEnergy.xLabel("simulation steps n").yLabel("normalized energies");
+    axesEnergy.title("Energies algorithms in 2D Ising");
+    axesEnergy.create<Legend>()._parentAxes = &axesEnergy;
+    CvPlot::show("plotPhysics", axesEnergy);
+
+
+    //
+    std::cout << "mean(metropolis)= " << mean(energyMetro) << std::endl;
+    std::cout << "mean(heatBath)= " << mean(energyHB) << std::endl;
+    std::cout << "mean(wolff)= " << mean(energyWolff) << std::endl;
 
     /// ---------------------------------------------------------------------------------------------------------------
     /// Calculate and plot autocorrelation
@@ -76,17 +124,20 @@ void runIsingLive() {
 
     auto axesAC = CvPlot::makePlotAxes();
     for (int i = 0; i < numEnsembles; ++i) {
-        std::vector<float> ac_le = autoCorr(lowTemp[i]);
-        normalize(ac_le);
-        std::vector<float> acHB_le = autoCorr(lowTempHB[i]);
-        normalize(acHB_le);
-        if(i==0) {
-            axesAC.create<CvPlot::Series>(ac_le, "-b").setName("Metropolis (T=0.1)");
-            axesAC.create<CvPlot::Series>(acHB_le, "-g").setName("Heatbath (T=0.1)");
+        std::vector<float> ac_metro = autoCorr(energyMetro[i]);
+        normalize(ac_metro);
+        std::vector<float> ac_HB = autoCorr(energyHB[i]);
+        normalize(ac_HB);
+        std::vector<float> ac_wolff = autoCorr(energyWolff[i]);
+        normalize(ac_wolff);
+        if (i == 0) {
+            axesAC.create<CvPlot::Series>(ac_metro, "-g").setName("Metropolis (T=0.1)");
+            axesAC.create<CvPlot::Series>(ac_HB, "-r").setName("HeatBath (T=0.1)");
+            axesAC.create<CvPlot::Series>(ac_wolff, "-b").setName("Wolff (T=0.1)");
         }
     }
     axesAC.xLabel("simulation steps n").yLabel("normalized autocorrelation");
-    axesAC.title("Autocorrelation Metropolis vs. Heatbath in 2D Ising");
+    axesAC.title("Autocorrelations algorithms in 2D Ising");
     axesAC.create<Legend>()._parentAxes = &axesAC;
     CvPlot::show("autocorr", axesAC);
 

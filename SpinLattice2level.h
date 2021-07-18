@@ -3,10 +3,12 @@
 //
 #pragma once
 
-#include <vector>
-#include <random>
-#include <iostream>
+#include <algorithm>
 #include <cassert>
+#include <iostream>
+#include <random>
+#include <unordered_set>
+#include <vector>
 
 // a quadratic 2-level ising-lattice
 class SpinLattice2level {
@@ -85,7 +87,13 @@ public:
 
     std::random_device rd;
     std::mt19937 mt;
+    /**
+     * returns int either 0 or 1
+     */
     std::uniform_int_distribution<short> u_int_dist;
+    /**
+     * returns a float between 0 and 1
+     */
     std::uniform_real_distribution<float> u_float_dist;
 private:
     unsigned int sights;
@@ -93,10 +101,15 @@ private:
     int h;
 };
 
-void metropolisSweep(SpinLattice2level &spinLattice, float temp);
+void metropolisSweep(SpinLattice2level &spinLattice, const float &temp);
 
-void metropolisSweep(SpinLattice2level &spinLattice, float temp, unsigned int iterations);
+void metropolisSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);
 
-void heatBathSweep(SpinLattice2level &spinLattice, float temp);
+void heatBathSweep(SpinLattice2level &spinLattice, const float &temp);
+void heatBathSweep(SpinLattice2level &spinLattice, const float &temp,const unsigned int &iterations);
 
-void heatBathSweepRandChoice(SpinLattice2level &spinLattice, float temp);
+void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp);
+
+void wolffSweep(SpinLattice2level &sl, const float &temp);
+
+void wolffSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);

@@ -49,7 +49,7 @@ float SpinLattice2level::calcEnergy() const {
             energyIt += calcEnergy(i, j);
         }
     }
-    float energy= static_cast<float>(energyIt) / static_cast<float>(2*4 * sights * sights) + 0.5f;//scale to [0,1]
+    float energy = static_cast<float>(energyIt) / static_cast<float>(2 * 4 * sights * sights) + 0.5f;//scale to [0,1]
     return energy;
 }
 
@@ -68,6 +68,8 @@ int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y, int newSpin) c
     const int J_val = J;
     const unsigned int i = x + y * sights;
     int energy = 0;
+
+    //TODO maybe this could be accelerated
 
     // not at left boarder
     if (x > 0) {
@@ -101,7 +103,7 @@ int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y, int newSpin) c
         energy += (spins[i - sights * (sights - 1)] + h);
     }
 
-    energy=-1 * J_val * energy * newSpin;
+    energy = -1 * J_val * energy * newSpin;
     return energy;
 }
 
@@ -136,7 +138,7 @@ int SpinLattice2level::calcHeatCapacity() {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-void metropolisSweep(SpinLattice2level &spinLattice, float temp) {
+void metropolisSweep(SpinLattice2level &spinLattice, const float &temp) {
     for (size_t i = 0; i < spinLattice.getSights(); ++i) {
         for (size_t j = 0; j < spinLattice.getSights(); ++j) {
             const short newSpin = spinLattice.u_int_dist(spinLattice.mt) == 0 ? -1 : 1;
@@ -162,13 +164,13 @@ void metropolisSweep(SpinLattice2level &spinLattice, float temp) {
             }
         }
     }
+    spinLattice.performedSweeps++;
 }
 
-void metropolisSweep(SpinLattice2level &spinLattice, float temp, unsigned int iterations) {
+void metropolisSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations) {
     for (size_t i = 0; i < iterations; ++i) {
         metropolisSweep(spinLattice, temp);
     }
-    spinLattice.performedSweeps++;
 }
 
 int heatBathSumOfNeighbours(SpinLattice2level &sl, unsigned int x, unsigned int y) {
@@ -192,7 +194,7 @@ int heatBathSumOfNeighbours(SpinLattice2level &sl, unsigned int x, unsigned int 
     return sum;
 }
 
-void heatBathSweep(SpinLattice2level &spinLattice, float temp) {
+void heatBathSweep(SpinLattice2level &spinLattice, const float &temp) {
     const auto J_val = spinLattice.J;
     auto mt = std::mt19937(spinLattice.rd());
     for (size_t i = 0; i < spinLattice.getSights(); i += 1) {
@@ -211,7 +213,13 @@ void heatBathSweep(SpinLattice2level &spinLattice, float temp) {
     spinLattice.performedSweeps++;
 }
 
-void heatBathSweepRandChoice(SpinLattice2level &spinLattice, float temp) {
+void heatBathSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations) {
+    for (size_t i = 0; i < iterations; ++i) {
+        heatBathSweep(spinLattice, temp);
+    }
+}
+
+void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp) {
     const auto J_val = spinLattice.J;
     static std::uniform_int_distribution<unsigned int> loc(0, spinLattice.getSights() - 1);
 
@@ -230,4 +238,77 @@ void heatBathSweepRandChoice(SpinLattice2level &spinLattice, float temp) {
         }
     }
     spinLattice.performedSweeps++;
+}
+
+typedef std::pair<int, int> Loc2d;
+
+struct pair_hash {
+    inline std::size_t operator()(const Loc2d &v) const {
+        return v.first * 31 + v.second;
+    }
+};
+
+void wolffClusterRecursive(const Loc2d loc, SpinLattice2level &sl,
+                           const float &temp, std::unordered_set<Loc2d, pair_hash> &clusterElements) {
+
+    // check if this node is known
+    if (clusterElements.count(loc) == 1) {
+        return;
+    }
+    // add the loc to container elements
+    clusterElements.insert(loc);
+
+    /**
+     * neighbours are named like:
+     *       2
+     *       |
+     *   3--- ---1
+     *       |
+     *       4
+     */
+
+
+    std::vector<Loc2d> neighbours{Loc2d((loc.first + 1) % sl.getSights(), loc.second),
+                                  Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
+                                  Loc2d((loc.first - 1) % sl.getSights(), loc.second),
+                                  Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
+
+    std::uniform_real_distribution<float> u(0, 1);
+    for (const auto &n:neighbours) {
+        if (sl(loc.first, loc.second) == sl(n.first, n.second) &&
+            1 - std::exp(-2.0f * static_cast<float>(sl.J) / temp) > u(sl.mt)) {
+            wolffClusterRecursive(n, sl, temp, clusterElements);
+        }
+    }
+    // after recursion flip the spin
+    sl(loc.first, loc.second) *= -1;
+}
+
+void wolffSweep(SpinLattice2level &sl, const float &temp) {
+    std::uniform_int_distribution<unsigned int> u(0, sl.getSights() - 1);
+
+    /// here we store all elements which are in the cluster and already got flipped
+    // implementation with unsorted_set due to faster .count() (constant complexity)
+    static std::unordered_set<Loc2d, pair_hash> clusterElements;
+    clusterElements.clear();
+    clusterElements.reserve(sl.getSights() * sl.getSights());
+
+    const Loc2d startLoc{u(sl.mt), u(sl.mt)};
+    wolffClusterRecursive(startLoc, sl, temp, clusterElements);
+
+    // for debugging
+    /*
+        std::cout<<"cluster-size: "<<clusterElements.size()<<std::endl;
+        for(const auto &el:clusterElements){
+            std::cout<<"("<<el.first<<","<<el.second<<")";
+        }
+        std::cout<<std::endl<<std::endl;
+     */
+    sl.performedSweeps++;
+}
+
+void wolffSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations) {
+    for (unsigned int i = 0; i < iterations; ++i) {
+        wolffSweep(spinLattice, temp);
+    }
 }
