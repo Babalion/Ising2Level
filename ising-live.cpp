@@ -30,6 +30,7 @@ void runIsingLive() {
 
     /// Start simulation
     for (int i = 0; i < numEnsembles; i++) {
+        sl.initCold();
         energyMetro.push_back(std::vector<float>{(float) sl.calcEnergy()});
         for (int j = 0; j < numSteps; ++j) {
             metropolisSweep(sl, temp, 10);
@@ -39,11 +40,10 @@ void runIsingLive() {
             if (j % 20 == 0)
                 gui.notify(sl);
         }
-        sl.initRandom();
     }
 
-    sl.initRandom();
     for (int i = 0; i < numEnsembles; i++) {
+        sl.initCold();
         energyHB.push_back(std::vector<float>{(float) sl.calcEnergy()});
         for (int j = 0; j < numSteps; ++j) {
             heatBathSweep(sl, temp, 10);
@@ -53,11 +53,10 @@ void runIsingLive() {
             if (j % 20 == 0)
                 gui.notify(sl);
         }
-        sl.initRandom();
     }
 
-    sl.initRandom();
     for (int i = 0; i < numEnsembles; i++) {
+        sl.initCold();
         energyWolff.push_back(std::vector<float>{(float) sl.calcEnergy()});
         for (int j = 0; j < numSteps; ++j) {
             wolffSweep(sl, temp, 10);
@@ -67,7 +66,6 @@ void runIsingLive() {
             if (j % 20 == 0)
                 gui.notify(sl);
         }
-        sl.initRandom();
     }
 
 
@@ -131,9 +129,9 @@ void runIsingLive() {
         std::vector<float> ac_wolff = autoCorr(energyWolff[i]);
         normalize(ac_wolff);
         if (i == 0) {
-            axesAC.create<CvPlot::Series>(ac_metro, "-g").setName("Metropolis (T=0.1)");
-            axesAC.create<CvPlot::Series>(ac_HB, "-r").setName("HeatBath (T=0.1)");
-            axesAC.create<CvPlot::Series>(ac_wolff, "-b").setName("Wolff (T=0.1)");
+            axesAC.create<CvPlot::Series>(ac_metro, "-g").setName("Metropolis (T=T_c)");
+            axesAC.create<CvPlot::Series>(ac_HB, "-r").setName("HeatBath (T=T_c)");
+            axesAC.create<CvPlot::Series>(ac_wolff, "-b").setName("Wolff (T=T_c)");
         }
     }
     axesAC.xLabel("simulation steps n").yLabel("normalized autocorrelation");

@@ -116,9 +116,9 @@ int test_Simulation_par() {
 int main() {
     int err_code = 0;
     auto begin = std::chrono::steady_clock::now();
-    //assertEqual (test_SpinLattice2level() == 0);
+    assertEqual (test_SpinLattice2level() == 0);
     assertEqual (test_Simulation_seq() == 0);
-    //assertEqual (test_Simulation_par() == 0);
+    assertEqual (test_Simulation_par() == 0);
 
     auto end = std::chrono::steady_clock::now();
     std::cout << "Time needed = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"

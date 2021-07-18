@@ -42,6 +42,10 @@ void SpinLattice2level::initRandom() {
     }
 }
 
+void SpinLattice2level::initCold() {
+    std::fill(spins.begin(), spins.end(), -1);
+}
+
 float SpinLattice2level::calcEnergy() const {
     int energyIt = 0;
     for (size_t i = 0; i < sights; ++i) {
@@ -53,7 +57,7 @@ float SpinLattice2level::calcEnergy() const {
     return energy;
 }
 
-int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y) const {
+inline int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y) const {
     return calcEnergy(x, y, spins[x + y * sights]);
 }
 
@@ -123,14 +127,6 @@ float SpinLattice2level::calcMagnetization() const {
     std::cout << magnet << std::endl;
 #endif
     return magnet / static_cast<float>(spins.size());
-}
-
-float SpinLattice2level::calcSusceptibility() {
-    return 0;
-}
-
-int SpinLattice2level::calcHeatCapacity() {
-    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -240,61 +236,37 @@ void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp) 
     spinLattice.performedSweeps++;
 }
 
-typedef std::pair<int, int> Loc2d;
-
-struct pair_hash {
-    inline std::size_t operator()(const Loc2d &v) const {
-        return v.first * 31 + v.second;
-    }
-};
-
-void wolffClusterRecursive(const Loc2d loc, SpinLattice2level &sl,
-                           const float &temp, std::unordered_set<Loc2d, pair_hash> &clusterElements) {
-
-    // check if this node is known
-    if (clusterElements.count(loc) == 1) {
-        return;
-    }
-    // add the loc to container elements
-    clusterElements.insert(loc);
-
+void wolffClusterRecursive(const SpinLattice2level::Loc2d &loc, SpinLattice2level &sl, const float &temp) {
+    // flip the spin before recursion, so no neighbour will ever join again this point
+    sl(loc.first, loc.second) *= -1;
     /**
      * neighbours are named like:
-     *       2
+     *       1
      *       |
-     *   3--- ---1
+     *   2--- ---0
      *       |
-     *       4
+     *       3
      */
-
-
-    std::vector<Loc2d> neighbours{Loc2d((loc.first + 1) % sl.getSights(), loc.second),
-                                  Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
-                                  Loc2d((loc.first - 1) % sl.getSights(), loc.second),
-                                  Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
+    const std::array<SpinLattice2level::Loc2d, 4>
+            neighbours{SpinLattice2level::Loc2d((loc.first + 1) % sl.getSights(), loc.second),
+                       SpinLattice2level::Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
+                       SpinLattice2level::Loc2d((loc.first - 1) % sl.getSights(), loc.second),
+                       SpinLattice2level::Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
 
     std::uniform_real_distribution<float> u(0, 1);
+
     for (const auto &n:neighbours) {
-        if (sl(loc.first, loc.second) == sl(n.first, n.second) &&
+        if (sl(loc.first, loc.second) == -1 * sl(n.first, n.second) &&
             1 - std::exp(-2.0f * static_cast<float>(sl.J) / temp) > u(sl.mt)) {
-            wolffClusterRecursive(n, sl, temp, clusterElements);
+            wolffClusterRecursive(n, sl, temp);
         }
     }
-    // after recursion flip the spin
-    sl(loc.first, loc.second) *= -1;
 }
 
-void wolffSweep(SpinLattice2level &sl, const float &temp) {
+inline void wolffSweep(SpinLattice2level &sl, const float &temp) {
     std::uniform_int_distribution<unsigned int> u(0, sl.getSights() - 1);
 
-    /// here we store all elements which are in the cluster and already got flipped
-    // implementation with unsorted_set due to faster .count() (constant complexity)
-    static std::unordered_set<Loc2d, pair_hash> clusterElements;
-    clusterElements.clear();
-    clusterElements.reserve(sl.getSights() * sl.getSights());
-
-    const Loc2d startLoc{u(sl.mt), u(sl.mt)};
-    wolffClusterRecursive(startLoc, sl, temp, clusterElements);
+    wolffClusterRecursive(SpinLattice2level::Loc2d(u(sl.mt), u(sl.mt)), sl, temp);
 
     // for debugging
     /*

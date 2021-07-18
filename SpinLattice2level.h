@@ -4,6 +4,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <iostream>
 #include <random>
@@ -41,15 +42,32 @@ public:
     // Reinitialize all spins with random values
     void initRandom();
 
+    // Reinitialize all spins with -1
+    void initCold();
 
-    short operator()(unsigned int x, unsigned int y) const {
+
+    inline short operator()(unsigned int x, unsigned int y) const {
+#ifdef DEBUG
         assert(x < sights && y < sights);
+#endif
         return spins[x + y * sights];
     }
 
-    short &operator()(unsigned int x, unsigned int y) {
+    inline short &operator()(unsigned int x, unsigned int y) {
+#ifdef DEBUG
         assert(x < sights && y < sights);
+#endif
         return spins[x + y * sights];
+    }
+
+    typedef std::pair<int, int> Loc2d;
+
+    inline short operator()(Loc2d loc) const {
+        return operator()(loc.first, loc.second);
+    }
+
+    inline short &operator()(Loc2d loc) {
+        return operator()(loc.first, loc.second);
     }
 
     /**
@@ -58,7 +76,7 @@ public:
     */
     [[nodiscard]] float calcEnergy() const;
 
-    [[nodiscard]] int calcEnergy(unsigned int x, unsigned int y) const;
+    [[nodiscard]] inline int calcEnergy(unsigned int x, unsigned int y) const;
 
     [[nodiscard]] int calcEnergy(unsigned int x, unsigned int y, int newSpinVal) const;
 
@@ -68,16 +86,12 @@ public:
      */
     [[nodiscard]] float calcMagnetization() const;
 
-    [[nodiscard]] static float calcSusceptibility();
 
-    [[nodiscard]] static int calcHeatCapacity();
-
-
-    [[nodiscard]] unsigned int getSights() const {
+    [[nodiscard]] inline unsigned int getSights() const {
         return sights;
     }
 
-    [[nodiscard]] const std::vector<short> &getSpins() const {
+    [[nodiscard]] inline const std::vector<short> &getSpins() const {
         return spins;
     }
 
@@ -106,10 +120,13 @@ void metropolisSweep(SpinLattice2level &spinLattice, const float &temp);
 void metropolisSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);
 
 void heatBathSweep(SpinLattice2level &spinLattice, const float &temp);
-void heatBathSweep(SpinLattice2level &spinLattice, const float &temp,const unsigned int &iterations);
+
+void heatBathSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);
 
 void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp);
 
 void wolffSweep(SpinLattice2level &sl, const float &temp);
 
 void wolffSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);
+
+inline void wolffClusterRecursive(const SpinLattice2level::Loc2d &loc, SpinLattice2level &sl, const float &temp);

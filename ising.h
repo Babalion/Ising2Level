@@ -49,8 +49,6 @@ public:
                 wolffSweep(sl, temps[i], sweepsPerIteration);
                 energies.push_back(sl.calcEnergy());
                 magnetization.push_back(sl.calcMagnetization());
-                susceptibility.push_back(sl.calcSusceptibility());
-                heatCapacity.push_back(sl.calcHeatCapacity());
                 if (i > 0 && i % numOfIterations == 0) {
                     auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                     std::cout << std::ctime(&time) << "done temp " << temps[i] << ". Remaining: "
@@ -64,7 +62,7 @@ public:
 
 
     /**
- * sumlate the simulation parallelized
+ * simulate the simulation parallelized
  */
     void simulate_par() {
         // -------------- Divide amount of work -------------------------------------------------
