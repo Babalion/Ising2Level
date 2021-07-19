@@ -1,7 +1,7 @@
 //
 // Created by chris on 14.06.21.
 //
-#include "ising.h"
+#include "Simulation.h"
 
 /** TASK 1:
  *
@@ -49,8 +49,7 @@ void simulateAndPlot() {
         /// Save measurements to file
         for (size_t i = 0; i < S.getNumOfTemps() * S.getNumOfIterations(); ++i) {
             file << S.getSights() << "\t" << S.getTemps()[i] << "\t"
-                 << S.getMagnetization()[i] << "\t" << S.getEnergies()[i]
-                 << "\t" << S.getSusceptibility()[i] << "\t" << S.getHeatCapacity()[i] << "\n";
+                 << S.getMagnetization()[i] << "\t" << S.getEnergies()[i] << "\n";
         }
     }
 

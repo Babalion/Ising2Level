@@ -5,7 +5,7 @@
 #include "assert_macro.h"
 #include <chrono>
 
-#include "../../ising.h"
+#include "../../Simulation.h"
 
 int test_SpinLattice2level() {
     int err_code = 0;

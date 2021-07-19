@@ -2,7 +2,7 @@
 // Created by chris on 14.06.21.
 //
 
-#include "ising.h"
+#include "Simulation.h"
 #include "utils.h"
 
 #include "SpinLattice2level.h"

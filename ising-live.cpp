@@ -1,7 +1,7 @@
 //
 // Created by chris on 16.07.21.
 //
-#include "ising.h"
+#include "Simulation.h"
 #include "utils.h"
 
 

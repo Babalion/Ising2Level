@@ -20,14 +20,26 @@ public:
      * @param tempStart
      * @param tempEnd
      * @param numIterations
-     * @param shuffleAgainAfter
+     * @param shuffleAgainAfter this leads to reinitialize the spins after given number. Set to UINT32_MAX if you would like to use always the same ensemble
      */
-    Simulation(unsigned int sights, int numOfTemps, float tempStart, float tempEnd, int numIterations,
+    Simulation(unsigned int sights, unsigned int numOfTemps, float tempStart, float tempEnd, int numIterations,
                unsigned int shuffleAgainAfter)
-            : thermalizeSweeps(1000),sweepsPerIteration(1E4), sights(sights), tempStart(tempStart), tempEnd(tempEnd), numOfTemps(numOfTemps),
+            : thermalizeSweeps(10), sweepsPerIteration(1), sights(sights), tempStart(tempStart), tempEnd(tempEnd),
+              numOfTemps(numOfTemps),
               numOfIterations(numIterations),
               shuffleAgainAfter(shuffleAgainAfter), sl(sights), isSimulated(false) {
-        init();
+        // reserve memory for results
+        temps.reserve(numOfTemps * numOfIterations);
+        energies.reserve(numOfTemps * numOfIterations);
+        magnetization.reserve(numOfTemps * numOfIterations);
+
+        // calculate temps
+        for (unsigned int i = 0; i < numOfTemps; ++i) {
+            float temp = tempStart + static_cast<float>(i) * (tempEnd - tempStart) / static_cast<float>(numOfTemps - 1);
+            for (unsigned int j = 0; j < numOfIterations; ++j) {
+                temps.push_back(temp);
+            }
+        }
     }
 
     void simulate_seq() {
@@ -37,14 +49,15 @@ public:
             for (unsigned int i = 0; i < temps.size(); i++) {
                 // shuffle sl to obtain maybe a different equilibrate state
                 if (i % shuffleAgainAfter == 0) {
-                    std::cout<<"Shuffle!!<<\n";
+                    std::cout << "Shuffle!!<<\n";
                     sl.initRandom();
                     wolffSweep(sl, temps[i], thermalizeSweeps);
                 }
-                if(i%(temps.size()/20)==0){
+                if (i % (temps.size() / 20) == 0) {
                     auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                     std::cout.precision(3);
-                    std::cout << std::ctime(&time) << "N="<<sights<<"\tprogress:" << 100.0f*i/temps.size() <<"%"<< std::endl;
+                    std::cout << std::ctime(&time) << "N=" << sights << "\tprogress:" << 100.0f * i / temps.size()
+                              << "%" << std::endl;
                 }
                 wolffSweep(sl, temps[i], sweepsPerIteration);
                 energies.push_back(sl.calcEnergy());
@@ -69,10 +82,9 @@ public:
         static const unsigned int hardwareCon = std::thread::hardware_concurrency();
         static const unsigned int supportedThreads = hardwareCon == 0 ? 2 : hardwareCon;
 
-        static const unsigned int workPerThread = numOfTemps / supportedThreads;
-        static const unsigned int workRemaining = numOfTemps % supportedThreads;
+        const unsigned int workPerThread = numOfTemps / supportedThreads;
+        const unsigned int workRemaining = numOfTemps % supportedThreads;
 
-        static unsigned int amountOfThreads;
         if (workPerThread == 0 && workRemaining > 0) //we have less work than threads
             amountOfThreads = numOfTemps;
         else //we have enough work --> use all cores
@@ -128,10 +140,6 @@ public:
             energies.insert(end(energies), begin(Simulations.getEnergies()), end(Simulations.getEnergies()));
             magnetization.insert(end(magnetization), begin(Simulations.getMagnetization()),
                                  end(Simulations.getMagnetization()));
-            susceptibility.insert(end(susceptibility), begin(Simulations.getSusceptibility()),
-                                  end(Simulations.getSusceptibility()));
-            heatCapacity.insert(end(heatCapacity), begin(Simulations.getHeatCapacity()),
-                                end(Simulations.getHeatCapacity()));
         }
         isSimulated = true;
 #ifdef DEBUG
@@ -180,12 +188,8 @@ public:
         return magnetization;
     }
 
-    [[nodiscard]] const std::vector<float> &getSusceptibility() const {
-        return susceptibility;
-    }
+    void printStatus() const {
 
-    [[nodiscard]] const std::vector<float> &getHeatCapacity() const {
-        return heatCapacity;
     }
 
 public:
@@ -204,28 +208,11 @@ private:
     std::vector<float> temps;
     std::vector<float> energies;
     std::vector<float> magnetization;
-    std::vector<float> susceptibility;
-    std::vector<float> heatCapacity;
 
+    /// Monitoring simulation parameters for std::cout
+    unsigned int tempIndexATM = 0;
+    unsigned int amountOfThreads = 2;
     // SpinLattice for simulation
     SpinLattice2level sl;
     bool isSimulated;
-private:
-    void init() {
-        // reserve memory for results
-        temps.reserve(numOfTemps * numOfIterations);
-        energies.reserve(numOfTemps * numOfIterations);
-        magnetization.reserve(numOfTemps * numOfIterations);
-        susceptibility.reserve(numOfTemps * numOfIterations);
-        heatCapacity.reserve(numOfTemps * numOfIterations);
-
-        // calculate temps
-        for (unsigned int i = 0; i < numOfTemps; ++i) {
-            float temp = tempStart + static_cast<float>(i) * (tempEnd - tempStart) / static_cast<float>(numOfTemps - 1);
-            for (unsigned int j = 0; j < numOfIterations; ++j) {
-                temps.push_back(temp);
-            }
-        }
-
-    }
 };
