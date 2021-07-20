@@ -125,6 +125,10 @@ public:
         }
 
         amountOfWorkingThreads = amountOfThreads;
+        // Let threads initialize first
+        printStatus();
+        std::this_thread::sleep_for(std::chrono::seconds(20));
+
         while (amountOfWorkingThreads > 0) {
             tempIndexATM = 0;
             amountOfWorkingThreads = 0;
