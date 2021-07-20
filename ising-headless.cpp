@@ -9,33 +9,32 @@
  * Reconstruct for each size dependent on temperature
  *  -energy E(T)
  *  -magnetization m(T)
- *  -heat capacity C(T)
- *  -susceptibility chi(T)
  *
- *  We need at least 1E4 measurements per temperature
- *  Calculate the autocorrelations
+ *  We need at least 1E4 measurements per temperature for less autocorrelations
  */
 void simulateAndPlot() {
     const float TCritical = 2.0f / std::log(1.0f + std::sqrt(2.0f));
     const float minTemp = 2;
     const float maxTemp = 2.6;
-    const int numOfTemps = 8;
-    const int numIterations = 1000;
+    const int numOfTemps = 16;
+    const int numIterations = 1E5;
     const unsigned int shuffleAgainAfter = UINT32_MAX;
 
     std::vector<Simulation> Sims = {
-            Simulation(16, 8, minTemp, maxTemp, numIterations, shuffleAgainAfter),
-            Simulation(32, 8, TCritical - 0.8f, TCritical + 0.8f, numIterations, shuffleAgainAfter),
-            Simulation(64, 8, TCritical - 0.5f, TCritical + 0.5f, numIterations, shuffleAgainAfter),
-            Simulation(128, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter),
-            Simulation(256, 8, TCritical - 0.1f, TCritical + 0.1f, numIterations, shuffleAgainAfter)};
+            Simulation(16, numOfTemps, 1.5, 3.5, numIterations, shuffleAgainAfter),
+            Simulation(32, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
+            Simulation(64, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
+            Simulation(128, numOfTemps, 2, 2.6, numIterations, shuffleAgainAfter),
+            Simulation(256, numOfTemps, 2, 2.4, numIterations, shuffleAgainAfter),
+            Simulation(512, numOfTemps, 2.1, 2.4, 2 * numIterations, shuffleAgainAfter),
+            Simulation(1024, numOfTemps, 2.1, 2.4, 2 * numIterations, shuffleAgainAfter)};
 
     for (auto &S:Sims) {
         S.sweepsPerIteration = 5;
-        S.thermalizeSweeps = 50;
+        S.thermalizeSweeps = 200;
     }
 
-    std::ofstream file("IsingResultsWolff.tsv");
+    std::ofstream file("IsingResultsWolffUp1024all.tsv");
     file << "numOfTemps:\t" << numOfTemps << std::endl;
     file << "numOfIterations:\t" << numIterations << std::endl << std::endl;
     file << "N\ttemp\tmagnetization\tenergy\tsusceptibility\theatCapacity\n";
