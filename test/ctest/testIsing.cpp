@@ -67,7 +67,7 @@ int test_Simulation_seq() {
     assertEqual(Sim.getMagnetization().size() == numOfIterations * numOfTemps);
     std::cout << "Sim.getTemps().size()= " << Sim.getTemps().size() << std::endl;
     for (int i = 0; i < numOfIterations * numOfTemps; ++i) {
-        std::cout << Sim.getTemps()[i] << std::endl;
+        //std::cout << Sim.getTemps()[i] << std::endl;
         assertEqual(Sim.getEnergies()[i] >= 0);
         assertEqual(Sim.getEnergies()[i] <= 1);
         assertEqual(Sim.getMagnetization()[i] <= 1);

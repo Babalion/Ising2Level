@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
+#include <iomanip>
 
 class Simulation {
 public:
@@ -27,7 +28,7 @@ public:
             : thermalizeSweeps(10), sweepsPerIteration(1), sights(sights), tempStart(tempStart), tempEnd(tempEnd),
               numOfTemps(numOfTemps),
               numOfIterations(numIterations),
-              shuffleAgainAfter(shuffleAgainAfter), sl(sights), isSimulated(false) {
+              shuffleAgainAfter(shuffleAgainAfter), sl(sights), isSimulated(false), printStat(true) {
         // reserve memory for results
         temps.reserve(numOfTemps * numOfIterations);
         energies.reserve(numOfTemps * numOfIterations);
@@ -46,30 +47,25 @@ public:
         if (isSimulated) {
             std::cerr << "This simulation is already finished.\n";
         } else {
+            amountOfWorkingThreads = 1;
             for (unsigned int i = 0; i < temps.size(); i++) {
                 // shuffle sl to obtain maybe a different equilibrate state
                 if (i % shuffleAgainAfter == 0) {
-                    std::cout << "Shuffle!!<<\n";
                     sl.initRandom();
                     wolffSweep(sl, temps[i], thermalizeSweeps);
                 }
-                if (i % (temps.size() / 20) == 0) {
-                    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-                    std::cout.precision(3);
-                    std::cout << std::ctime(&time) << "N=" << sights << "\tprogress:" << 100.0f * i / temps.size()
-                              << "%" << std::endl;
+                if (printStat && i % 10000 == 0) {
+                    printStatus();
                 }
+
                 wolffSweep(sl, temps[i], sweepsPerIteration);
                 energies.push_back(sl.calcEnergy());
                 magnetization.push_back(sl.calcMagnetization());
-                if (i > 0 && i % numOfIterations == 0) {
-                    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-                    std::cout << std::ctime(&time) << "done temp " << temps[i] << ". Remaining: "
-                              << (temps.size() - i) / numOfIterations << std::endl;
-                }
+                tempIndexATM++;
 
             }
             isSimulated = true;
+            amountOfWorkingThreads = 0;
         }
     }
 
@@ -95,6 +91,7 @@ public:
 
 
         /// Create now data structure to divide and store work: initialize different ensembles
+        // TODO shuffle temperatures bec. different temps may take different simulation time (see Wolff for low vs high T)
         std::vector<Simulation> Sims;
         Sims.reserve(amountOfThreads);
         float tempStep = (tempEnd - tempStart) / static_cast<float>(numOfTemps - 1);
@@ -109,6 +106,8 @@ public:
                 endTemp = tempStart + static_cast<float>((i + 1) * workPerThread - 1) * tempStep;
                 Sims.emplace_back(sights, workPerThread, startTemp, endTemp, numOfIterations, shuffleAgainAfter);
             }
+            // deactivate std::cout of those sims
+            Sims.back().printStat = false;
 
         }
 #ifdef DEBUG
@@ -120,13 +119,22 @@ public:
 #endif
 
         //start threads
-        std::vector<std::thread> threads(amountOfThreads - 1);
+        std::vector<std::thread> threads(amountOfThreads);
         for (unsigned int i = 0; i < threads.size(); i++) {
             threads[i] = std::thread([&Sims, i]() { Sims[i].simulate_seq(); });
         }
 
-        // do the remaining work
-        Sims[amountOfThreads - 1].simulate_seq();
+        amountOfWorkingThreads = amountOfThreads;
+        while (amountOfWorkingThreads > 0) {
+            tempIndexATM = 0;
+            amountOfWorkingThreads = 0;
+            for (auto &s : Sims) {
+                amountOfWorkingThreads += s.amountOfWorkingThreads;
+                tempIndexATM += s.tempIndexATM;
+            }
+            printStatus();
+            std::this_thread::sleep_for(std::chrono::seconds(20));
+        }
 
         for (auto &i : threads) {
             i.join();
@@ -188,8 +196,34 @@ public:
         return magnetization;
     }
 
+    /**
+     * prints status of simulation to console
+     */
     void printStatus() const {
+        //TODO add shuffle for new ensemble
 
+        // TODO add ETA
+
+        const std::string sep = " | ";
+        const std::string tempSize = std::string(std::to_string(temps.size()));
+
+        const auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        const std::string timeString = std::string(std::ctime(&time));
+
+
+        std::cout << sep << "N=" << std::left << std::setw(5) << sights
+                  << sep << "run:" << std::right << std::setw(static_cast<int>(tempSize.size()))
+                  << tempIndexATM << "/" << std::left << temps.size()
+
+                  << sep << "T=" << std::setprecision(3) << std::setw(6) << temps[tempIndexATM]
+                  << sep << std::setprecision(4) << std::setw(6)
+                  << static_cast<float>(tempIndexATM * 100) / static_cast<float>(temps.size()) << "%"
+
+                  << sep << "threads: " << std::right << std::setw(3)
+                  << amountOfWorkingThreads << "/" << std::left << amountOfThreads
+
+                  << sep << timeString.substr(0, timeString.size() - 1)
+                  << sep << '\n';
     }
 
 public:
@@ -211,8 +245,14 @@ private:
 
     /// Monitoring simulation parameters for std::cout
     unsigned int tempIndexATM = 0;
-    unsigned int amountOfThreads = 2;
-    // SpinLattice for simulation
+    unsigned int amountOfThreads = 0;
+    unsigned int amountOfWorkingThreads = 0;
+
+public:
+    bool printStat;
+
+private:
+    /// SpinLattice for simulation
     SpinLattice2level sl;
     bool isSimulated;
 };
