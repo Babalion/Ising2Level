@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <deque>
 #include <iostream>
 #include <random>
-#include <unordered_set>
 #include <vector>
 
 // a quadratic 2-level ising-lattice
@@ -128,5 +128,3 @@ void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp);
 void wolffSweep(SpinLattice2level &sl, const float &temp);
 
 void wolffSweep(SpinLattice2level &spinLattice, const float &temp, const unsigned int &iterations);
-
-inline void wolffClusterRecursive(const SpinLattice2level::Loc2d &loc, SpinLattice2level &sl, const float &temp);

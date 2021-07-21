@@ -85,15 +85,19 @@ int test_Simulation_par() {
     // check initialization...
     const float startTemp = 2;
     const int numOfTemps = 16;
-    const int numOfIterations = 50;
-    Simulation Sim(16, numOfTemps, startTemp, 8, numOfIterations, 10);
-    assertEqual(Sim.getSights() == 16);
+    const int numOfIterations = 256;
+    const unsigned int sights = 2048;
+    Simulation Sim(sights, numOfTemps, startTemp, 4, numOfIterations, UINT32_MAX);
+    Sim.sweepsPerIteration = 5;
+    Sim.thermalizeSweeps = 200;
+
+    assertEqual(Sim.getSights() == sights);
     assertEqual(Sim.getNumOfTemps() == numOfTemps);
     assertEqual(Sim.getTemps().size() == numOfTemps * numOfIterations);
 
     Sim.simulate_par();
 
-    assertEqual(Sim.getTemps().back() == 8);
+    assertEqual(Sim.getTemps().back() == 4);
     std::cout << "Sim.getTemps().back()=" << Sim.getTemps().back() << std::endl;
     assertEqual(Sim.getTemps()[0] == startTemp);
     assertEqual(Sim.getTemps().size() == numOfIterations * numOfTemps);

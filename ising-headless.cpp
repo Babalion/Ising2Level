@@ -2,6 +2,7 @@
 // Created by chris on 14.06.21.
 //
 #include "Simulation.h"
+#include <sys/resource.h>
 
 /** TASK 1:
  *
@@ -21,12 +22,12 @@ void simulateAndPlot() {
     const unsigned int shuffleAgainAfter = UINT32_MAX;
 
     std::vector<Simulation> Sims = {
-            Simulation(16, numOfTemps, 1.5, 3.5, numIterations, shuffleAgainAfter),
-            Simulation(32, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
-            Simulation(64, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
-            Simulation(128, numOfTemps, 2, 2.6, numIterations, shuffleAgainAfter),
-            Simulation(256, numOfTemps, 2, 2.4, numIterations, shuffleAgainAfter),
-            Simulation(512, numOfTemps, 2.1, 2.4, 2 * numIterations, shuffleAgainAfter),
+            //Simulation(16, numOfTemps, 1.5, 3.5, numIterations, shuffleAgainAfter),
+            //Simulation(32, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
+            //Simulation(64, numOfTemps, 1.6, 3, numIterations, shuffleAgainAfter),
+            //Simulation(128, numOfTemps, 2, 2.6, numIterations, shuffleAgainAfter),
+            //Simulation(256, numOfTemps, 2, 2.4, numIterations, shuffleAgainAfter),
+            //Simulation(512, numOfTemps, 2.1, 2.4, 2 * numIterations, shuffleAgainAfter),
             Simulation(1024, numOfTemps, 2.1, 2.4, 2 * numIterations, shuffleAgainAfter)};
 
     for (auto &S:Sims) {
@@ -34,7 +35,7 @@ void simulateAndPlot() {
         S.thermalizeSweeps = 200;
     }
 
-    std::ofstream file("IsingResultsWolffUp1024all.tsv");
+    std::ofstream file("IsingResultsWolff1024.tsv");
     file << "numOfTemps:\t" << numOfTemps << std::endl;
     file << "numOfIterations:\t" << numIterations << std::endl << std::endl;
     file << "N\ttemp\tmagnetization\tenergy\tsusceptibility\theatCapacity\n";

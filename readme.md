@@ -31,11 +31,13 @@ Project is based on C++20
 
 This is a **CMake-Project**. Compilation and building is pretty easy. Simply run in main folder via terminal:
 
-<code>
-cmake --build ./cmake-build-release --target {program-name} -- -j 6
-</code>
+````
+    $ cmake .
+    $ cmake --build .
+    $ cmake --build --target {program-name}
+````
 
-The executable can be found in `./cmake-build-release/bin/{program-name}`.
+The executable can be found in `./bin/{program-name}`.
 
 ## Analyze a long headless run
 

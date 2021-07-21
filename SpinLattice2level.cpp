@@ -114,7 +114,7 @@ int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y, int newSpin) c
 float SpinLattice2level::calcMagnetization() const {
     float magnet = 0;
     for (const auto &s : spins) {
-        magnet += s;
+        magnet += static_cast<float>(s);
 #ifdef DEBUG
         if (std::abs(magnet) > static_cast<float>(spins.size())) {
             std::cerr << "magnetization is " << magnet << " this is higher than possible\n";
@@ -236,10 +236,22 @@ void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp) 
     spinLattice.performedSweeps++;
 }
 
-void wolffClusterRecursive(const SpinLattice2level::Loc2d &loc, SpinLattice2level &sl, const float &temp) {
-    // flip the spin before recursion, so no neighbour will ever join again this point
-    sl(loc.first, loc.second) *= -1;
-    /**
+void wolffSweep(SpinLattice2level &sl, const float &temp) {
+    std::uniform_int_distribution<unsigned int> u(0, sl.getSights() - 1);
+
+    // queue to save all locations of cluster
+    // initialize with random location
+    const SpinLattice2level::Loc2d startLoc{u(sl.mt), u(sl.mt)};
+    sl(startLoc) *= -1;
+    std::deque<SpinLattice2level::Loc2d> queue{startLoc};
+
+    while (!queue.empty()) {
+        // process first loc
+        auto loc = queue.front();
+        queue.pop_front();
+
+        // calculate neighbours locations
+        /**
      * neighbours are named like:
      *       1
      *       |
@@ -247,35 +259,22 @@ void wolffClusterRecursive(const SpinLattice2level::Loc2d &loc, SpinLattice2leve
      *       |
      *       3
      */
-    const std::array<SpinLattice2level::Loc2d, 4>
-            neighbours{SpinLattice2level::Loc2d((loc.first + 1) % sl.getSights(), loc.second),
-                       SpinLattice2level::Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
-                       SpinLattice2level::Loc2d((loc.first - 1) % sl.getSights(), loc.second),
-                       SpinLattice2level::Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
+        std::array<SpinLattice2level::Loc2d, 4>
+                neighbours{SpinLattice2level::Loc2d((loc.first + 1) % sl.getSights(), loc.second),
+                           SpinLattice2level::Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
+                           SpinLattice2level::Loc2d((loc.first - 1) % sl.getSights(), loc.second),
+                           SpinLattice2level::Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
 
-    std::uniform_real_distribution<float> u(0, 1);
 
-    for (const auto &n:neighbours) {
-        if (sl(loc.first, loc.second) == -1 * sl(n.first, n.second) &&
-            1 - std::exp(-2.0f * static_cast<float>(sl.J) / temp) > u(sl.mt)) {
-            wolffClusterRecursive(n, sl, temp);
+        std::uniform_real_distribution<float> r(0, 1);
+        for (auto n:neighbours) {
+            if (sl(loc) * -1 == sl(n) &&
+                1 - std::exp(-2.0f * static_cast<float>(sl.J) / temp) > r(sl.mt)) {
+                sl(n) *= -1;
+                queue.push_back(n);
+            }
         }
     }
-}
-
-inline void wolffSweep(SpinLattice2level &sl, const float &temp) {
-    std::uniform_int_distribution<unsigned int> u(0, sl.getSights() - 1);
-
-    wolffClusterRecursive(SpinLattice2level::Loc2d(u(sl.mt), u(sl.mt)), sl, temp);
-
-    // for debugging
-    /*
-        std::cout<<"cluster-size: "<<clusterElements.size()<<std::endl;
-        for(const auto &el:clusterElements){
-            std::cout<<"("<<el.first<<","<<el.second<<")";
-        }
-        std::cout<<std::endl<<std::endl;
-     */
     sl.performedSweeps++;
 }
 

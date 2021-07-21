@@ -6,6 +6,7 @@
 #include "SpinLattice2level.h"
 
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <fstream>
 #include <string>
@@ -26,9 +27,9 @@ public:
     Simulation(unsigned int sights, unsigned int numOfTemps, float tempStart, float tempEnd, int numIterations,
                unsigned int shuffleAgainAfter)
             : thermalizeSweeps(10), sweepsPerIteration(1), sights(sights), tempStart(tempStart), tempEnd(tempEnd),
-              numOfTemps(numOfTemps),
-              numOfIterations(numIterations),
-              shuffleAgainAfter(shuffleAgainAfter), sl(sights), isSimulated(false), printStat(true) {
+              numOfTemps(numOfTemps), numOfIterations(numIterations), shuffleAgainAfter(shuffleAgainAfter),
+              tempIndexATM(0), amountOfThreads(1), amountOfWorkingThreads(0), printStat(true), sl(sights),
+              isSimulated(false) {
         // reserve memory for results
         temps.reserve(numOfTemps * numOfIterations);
         energies.reserve(numOfTemps * numOfIterations);
@@ -136,6 +137,7 @@ public:
                 amountOfWorkingThreads += s.amountOfWorkingThreads;
                 tempIndexATM += s.tempIndexATM;
             }
+            tempIndexATM = std::min(tempIndexATM, temps.size() - 1);
             printStatus();
             std::this_thread::sleep_for(std::chrono::seconds(20));
         }
@@ -217,11 +219,11 @@ public:
 
         std::cout << sep << "N=" << std::left << std::setw(5) << sights
                   << sep << "run:" << std::right << std::setw(static_cast<int>(tempSize.size()))
-                  << tempIndexATM << "/" << std::left << temps.size()
+                  << tempIndexATM + 1 << "/" << std::left << temps.size()
 
                   << sep << "T=" << std::setprecision(3) << std::setw(6) << temps[tempIndexATM]
                   << sep << std::setprecision(4) << std::setw(6)
-                  << static_cast<float>(tempIndexATM * 100) / static_cast<float>(temps.size()) << "%"
+                  << static_cast<float>(tempIndexATM * 100) / static_cast<float>(temps.size() - 1) << "%"
 
                   << sep << "threads: " << std::right << std::setw(3)
                   << amountOfWorkingThreads << "/" << std::left << amountOfThreads
@@ -248,9 +250,9 @@ private:
     std::vector<float> magnetization;
 
     /// Monitoring simulation parameters for std::cout
-    unsigned int tempIndexATM = 0;
-    unsigned int amountOfThreads = 0;
-    unsigned int amountOfWorkingThreads = 0;
+    unsigned long tempIndexATM;
+    unsigned int amountOfThreads;
+    unsigned int amountOfWorkingThreads;
 
 public:
     bool printStat;
