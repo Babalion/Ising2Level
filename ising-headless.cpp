@@ -2,7 +2,6 @@
 // Created by chris on 14.06.21.
 //
 #include "Simulation.h"
-#include <sys/resource.h>
 
 /** TASK 1:
  *

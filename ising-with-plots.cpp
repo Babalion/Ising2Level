@@ -5,9 +5,6 @@
 #include "Simulation.h"
 #include "utils.h"
 
-#include "SpinLattice2level.h"
-#include <CvPlot/cvplot.h>
-
 void simulateAndPlot() {
     const int noOfTemps = 8;
     const float tempStart = 2;

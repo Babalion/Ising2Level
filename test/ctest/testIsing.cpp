@@ -85,8 +85,8 @@ int test_Simulation_par() {
     // check initialization...
     const float startTemp = 2;
     const int numOfTemps = 16;
-    const int numOfIterations = 256;
-    const unsigned int sights = 2048;
+    const int numOfIterations = 1E4;
+    const unsigned int sights = 256;
     Simulation Sim(sights, numOfTemps, startTemp, 4, numOfIterations, UINT32_MAX);
     Sim.sweepsPerIteration = 5;
     Sim.thermalizeSweeps = 200;

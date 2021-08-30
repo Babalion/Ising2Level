@@ -3,8 +3,6 @@
 //
 #include "SpinLattice2level.h"
 
-#include <cmath>
-
 
 SpinLattice2level::SpinLattice2level(unsigned int sights)
         : J(1), performedSweeps(0), mt(rd()), u_int_dist(0, 1), u_float_dist(0, 1), sights(sights),
@@ -46,70 +44,35 @@ void SpinLattice2level::initCold() {
     std::fill(spins.begin(), spins.end(), -1);
 }
 
-float SpinLattice2level::calcEnergy() const {
-    int energyIt = 0;
-    for (size_t i = 0; i < sights; ++i) {
-        for (size_t j = 0; j < sights; ++j) {
-            energyIt += calcEnergy(i, j);
-        }
-    }
-    float energy = static_cast<float>(energyIt) / static_cast<float>(2 * 4 * sights * sights) + 0.5f;//scale to [0,1]
-    return energy;
-}
-
-inline int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y) const {
-    return calcEnergy(x, y, spins[x + y * sights]);
-}
-
-// we choose cyclic boundary conditions
-int SpinLattice2level::calcEnergy(unsigned int x, unsigned int y, int newSpin) const {
+inline int SpinLattice2level::calcEnergy(const SpinLattice2level::Loc2d &loc, int newSpinVal) const {
 #ifdef DEBUG
     if(1!=std::abs(newSpin)){
         std::cerr<<"this is no valid spin ("<<newSpin<<")\n";
         exit(12);
     }
 #endif
-    const int J_val = J;
-    const unsigned int i = x + y * sights;
+    const auto neighbours = getNeighbours(loc);
     int energy = 0;
 
-    //TODO maybe this could be accelerated
-
-    // not at left boarder
-    if (x > 0) {
-        energy += (spins[i - 1] + h);
-    } else {
-        // give right boarder
-        energy += (spins[i + (sights - 1)] + h);
+    for (const auto &n:neighbours) {
+        energy += operator()(n);
     }
+    energy = -1 * J * energy * newSpinVal;
+    return energy;
 
-    // not at right boarder
-    if (x < sights - 1) {
-        energy += (spins[i + 1] + h);
-    } else {
-        //give right boarder
-        energy += (spins[i - (sights - 1)] + h);
+}
+
+float SpinLattice2level::calcEnergy() const {
+    int energyIt = 0;
+    for (size_t i = 0; i < sights; ++i) {
+        for (size_t j = 0; j < sights; ++j) {
+            energyIt += calcEnergy(SpinLattice2level::Loc2d(i, j));
+        }
     }
-
-    // not at top boarder
-    if (y > 0) {
-        energy += (spins[i - sights] + h);
-    } else {
-        //give bottom boarder
-        energy += (spins[i + sights * (sights - 1)] + h);
-    }
-
-    // not at bottom boarder
-    if (y < sights - 1) {
-        energy += (spins[i + sights] + h);
-    } else {
-        //give top boarder
-        energy += (spins[i - sights * (sights - 1)] + h);
-    }
-
-    energy = -1 * J_val * energy * newSpin;
+    float energy = static_cast<float>(energyIt) / static_cast<float>(2 * 4 * sights * sights) + 0.5f;//scale to [0,1]
     return energy;
 }
+
 
 float SpinLattice2level::calcMagnetization() const {
     float magnet = 0;
@@ -146,15 +109,16 @@ void metropolisSweep(SpinLattice2level &spinLattice, const float &temp) {
 #endif
             if (newSpin == spinLattice(i, j)) {// spin has not changed, so skip all the work
             } else {
-                const int newEnergy = spinLattice.calcEnergy(i, j, newSpin);
+                const auto loc = SpinLattice2level::Loc2d(i, j);
+                const int newEnergy = spinLattice.calcEnergy(loc, newSpin);
                 const int deltaE = 2 * newEnergy; //if spin flips, energy changes from either -4 to 4 or -2 to 2
 
                 if (deltaE < 0) {// energy decreases, so accept
-                    spinLattice(i, j) *= -1;
+                    spinLattice(loc) *= -1;
                 } else {
                     const float rand = spinLattice.u_float_dist(spinLattice.mt);
                     if (rand < std::exp(static_cast<float>(-1 * deltaE) / temp)) {
-                        spinLattice(i, j) *= -1;
+                        spinLattice(loc) *= -1;
                     }
                 }
             }
@@ -169,24 +133,12 @@ void metropolisSweep(SpinLattice2level &spinLattice, const float &temp, const un
     }
 }
 
-int heatBathSumOfNeighbours(SpinLattice2level &sl, unsigned int x, unsigned int y) {
-    const auto sights = sl.getSights();
-    const auto &spins = sl.getSpins();
-    const unsigned int i = x + y * sights;
+inline int heatBathSumOfNeighbours(const SpinLattice2level &sl, const SpinLattice2level::Loc2d &loc) {
     int sum = 0;
-    if (x > 0) {// not at left boarder
-        sum += spins[i - 1];
+    auto neighbours = sl.getNeighbours(loc);
+    for (const auto &n:neighbours) {
+        sum += sl(n);
     }
-    if (x < sl.getSights() - 1) {// not at right boarder
-        sum += spins[i + 1];
-    }
-    if (y > 0) {// not at top boarder
-        sum += spins[i - sights];
-    }
-    if (y < sl.getSights() - 1) {// not at bottom boarder
-        sum += spins[i + sights];
-    }
-
     return sum;
 }
 
@@ -195,14 +147,16 @@ void heatBathSweep(SpinLattice2level &spinLattice, const float &temp) {
     auto mt = std::mt19937(spinLattice.rd());
     for (size_t i = 0; i < spinLattice.getSights(); i += 1) {
         for (size_t j = 0; j < spinLattice.getSights(); j += 1) {
-            const int delta = heatBathSumOfNeighbours(spinLattice, i, j);
+            const auto loc = SpinLattice2level::Loc2d(i, j);
+
+            const int delta = heatBathSumOfNeighbours(spinLattice, loc);
             const float k = static_cast<float>(-1 * J_val * delta) / temp;
             const float q = std::exp(-1.0f * k) / 2.0f / std::cosh(k);
             const float r = spinLattice.u_float_dist(mt);
             if (r < q) {
-                spinLattice(i, j) = 1;
+                spinLattice(loc) = 1;
             } else {
-                spinLattice(i, j) = -1;
+                spinLattice(loc) = -1;
             }
         }
     }
@@ -217,20 +171,22 @@ void heatBathSweep(SpinLattice2level &spinLattice, const float &temp, const unsi
 
 void heatBathSweepRandChoice(SpinLattice2level &spinLattice, const float &temp) {
     const auto J_val = spinLattice.J;
-    static std::uniform_int_distribution<unsigned int> loc(0, spinLattice.getSights() - 1);
+    static std::uniform_int_distribution<unsigned int> u(0, spinLattice.getSights() - 1);
 
     for (size_t i = 0; i < spinLattice.getSights() * spinLattice.getSights(); i++) {
-        const unsigned int x = loc(spinLattice.mt);
-        const unsigned int y = loc(spinLattice.mt);
+        const unsigned int x = u(spinLattice.mt);
+        const unsigned int y = u(spinLattice.mt);
 
-        const int delta = heatBathSumOfNeighbours(spinLattice, x, y);
+        const auto loc = SpinLattice2level::Loc2d(x, y);
+
+        const int delta = heatBathSumOfNeighbours(spinLattice, loc);
         const float k = static_cast<float>(-1 * J_val * delta) / temp;
         const float q = std::exp(-1.0f * k) / 2.0f / std::cosh(k);
         const float r = spinLattice.u_float_dist(spinLattice.mt);
         if (r < q) {
-            spinLattice(x, y) = 1;
+            spinLattice(loc) = 1;
         } else {
-            spinLattice(x, y) = -1;
+            spinLattice(loc) = -1;
         }
     }
     spinLattice.performedSweeps++;
@@ -251,20 +207,7 @@ void wolffSweep(SpinLattice2level &sl, const float &temp) {
         queue.pop_front();
 
         // calculate neighbours locations
-        /**
-     * neighbours are named like:
-     *       1
-     *       |
-     *   2--- ---0
-     *       |
-     *       3
-     */
-        std::array<SpinLattice2level::Loc2d, 4>
-                neighbours{SpinLattice2level::Loc2d((loc.first + 1) % sl.getSights(), loc.second),
-                           SpinLattice2level::Loc2d(loc.first, (loc.second + 1) % sl.getSights()),
-                           SpinLattice2level::Loc2d((loc.first - 1) % sl.getSights(), loc.second),
-                           SpinLattice2level::Loc2d(loc.first, (loc.second - 1) % sl.getSights())};
-
+        auto neighbours = sl.getNeighbours(loc);
 
         std::uniform_real_distribution<float> r(0, 1);
         for (auto n:neighbours) {

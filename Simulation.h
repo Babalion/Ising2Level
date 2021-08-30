@@ -24,7 +24,7 @@ public:
      * @param numIterations
      * @param shuffleAgainAfter this leads to reinitialize the spins after given number. Set to UINT32_MAX if you would like to use always the same ensemble
      */
-    Simulation(unsigned int sights, unsigned int numOfTemps, float tempStart, float tempEnd, int numIterations,
+    Simulation(unsigned int sights, unsigned int numOfTemps, float tempStart, float tempEnd, unsigned int numIterations,
                unsigned int shuffleAgainAfter)
             : thermalizeSweeps(10), sweepsPerIteration(1), sights(sights), tempStart(tempStart), tempEnd(tempEnd),
               numOfTemps(numOfTemps), numOfIterations(numIterations), shuffleAgainAfter(shuffleAgainAfter),
@@ -151,9 +151,9 @@ public:
 #ifdef DEBUG
             std::cout << "Simulations.getTemps().size()=" << Simulations.getTemps().size() << std::endl;
 #endif
-            energies.insert(end(energies), begin(Simulations.getEnergies()), end(Simulations.getEnergies()));
-            magnetization.insert(end(magnetization), begin(Simulations.getMagnetization()),
-                                 end(Simulations.getMagnetization()));
+            energies.insert(energies.end(), Simulations.getEnergies().begin(), Simulations.getEnergies().end());
+            magnetization.insert(end(magnetization), Simulations.getMagnetization().begin(),
+                                 Simulations.getMagnetization().end());
         }
         isSimulated = true;
 #ifdef DEBUG

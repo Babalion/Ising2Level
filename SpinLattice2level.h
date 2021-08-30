@@ -60,7 +60,7 @@ public:
         return spins[x + y * sights];
     }
 
-    typedef std::pair<int, int> Loc2d;
+    typedef std::pair<unsigned int, unsigned int> Loc2d;
 
     inline short operator()(Loc2d loc) const {
         return operator()(loc.first, loc.second);
@@ -71,14 +71,41 @@ public:
     }
 
     /**
+     * calculates positions of neighbours for a given position
+     * @param loc
+     * @return next neighbours (4 in total)
+     */
+    [[nodiscard]] inline std::array<SpinLattice2level::Loc2d, 4>
+    getNeighbours(const SpinLattice2level::Loc2d &loc) const {
+        /**
+         * neighbours are named like:
+         *       1
+         *       |
+         *   2--- ---0
+         *       |
+         *       3
+         */
+        std::array<SpinLattice2level::Loc2d, 4>
+                neighbours{SpinLattice2level::Loc2d((loc.first + 1) % sights, loc.second),
+                           SpinLattice2level::Loc2d(loc.first, (loc.second + 1) % sights),
+                           SpinLattice2level::Loc2d((loc.first - 1) % sights, loc.second),
+                           SpinLattice2level::Loc2d(loc.first, (loc.second - 1) % sights)};
+        return neighbours;
+    }
+
+    [[nodiscard]] int calcEnergy(const SpinLattice2level::Loc2d &loc, int newSpinVal) const;
+
+    [[nodiscard]] inline int calcEnergy(const SpinLattice2level::Loc2d &loc) const {
+        return calcEnergy(loc, operator()(loc));
+    }
+
+    /**
      * calculates normalized energy of system: sum over all spins, divided by 4N²
+     * complexity: O(N^2)
+     * TODO there maybe are algorithms which can do this in n log n: search for matrix convolution
      * @return energy between 0 and 1
     */
     [[nodiscard]] float calcEnergy() const;
-
-    [[nodiscard]] inline int calcEnergy(unsigned int x, unsigned int y) const;
-
-    [[nodiscard]] int calcEnergy(unsigned int x, unsigned int y, int newSpinVal) const;
 
     /**
      *calculates normalized magnetization: sum over all spins, divided by N²
